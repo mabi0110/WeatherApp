@@ -5,12 +5,18 @@ import org.json.simple.parser.JSONParser;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class Main {
     private static final String WORLD_LIST_FILE_NAME = "worldcities.csv";
     private static final String JSON_FILE_NAME = "weather.json";
+
+    private static final Double KELWIN_TO_CEL = 273.15;
     private static Scanner scanner = new Scanner(System.in);
+
 
     public static void main(String[] args) {
 
@@ -19,8 +25,8 @@ public class Main {
         String city = "London";
         String lat = "";
         String lon = "";
-        String exclude = "hourly";
-        //String exclude = "daily";
+        //String exclude = "hourly";
+        String exclude = "daily";
 
         List<String> list = readDataFromFileToList(WORLD_LIST_FILE_NAME);
 
@@ -42,6 +48,53 @@ public class Main {
                 + ",current,minutely,alerts&appid=" + key;
 
 
+        String weatherJson = getJsonResponse(stringUrl);
+
+        HourlyWeather hourlyWeather = new Gson().fromJson(weatherJson, HourlyWeather.class);
+
+        HourlyWeather.Hourly hour;
+        HourlyWeather.Hourly.Rain rain;
+        for (int i = 0; i < hourlyWeather.hourly.size(); i++) {
+            hour = hourlyWeather.hourly.get(i);
+
+            Timestamp stamp = new Timestamp(hour.dt * 1000);
+            Date date = new Date(stamp.getTime());
+            DateFormat f = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+            String formattedDate = f.format(date);
+
+            rain = hour.rain;
+
+            if (rain == null){
+                System.out.printf("%19s, %-6.2f unknown,\n", formattedDate, (hour.temp - KELWIN_TO_CEL));
+            } else  {
+                System.out.printf("%19s, %-6.2f %6f,\n", formattedDate, (hour.temp - KELWIN_TO_CEL), rain.h);
+            }
+        }
+
+
+
+//        Weather weather = new Gson().fromJson(weatherJson, Weather.class);
+
+//        Weather.Daily day;
+//        for (int i = 0; i < weather.daily.size(); i++) {
+//            day = weather.daily.get(i);
+//
+//            Timestamp stamp = new Timestamp(day.dt * 1000);
+//            Date date = new Date(stamp.getTime());
+//            DateFormat f = new SimpleDateFormat("yyyy-MM-dd");
+//            String formattedDate = f.format(date);
+//
+//            double avgTemp = (day.temp.morn + day.temp.day + day.temp.eve + day.temp.night) / 4;
+//
+//            System.out.printf("%10s, %6.2f, %6.2f, %6.2f, %6.2f\n",
+//                    formattedDate, (day.temp.min - KELWIN_TO_CEL), (day.temp.max - KELWIN_TO_CEL), (avgTemp - KELWIN_TO_CEL), day.pop * 100);
+
+//        }
+
+    }
+
+    private static String getJsonResponse(String stringUrl) {
+        StringBuilder informationString = null;
         try {
             URL url = new URL(stringUrl);
             System.out.println("Url: " + url);
@@ -50,38 +103,25 @@ public class Main {
             conn.setRequestMethod("GET");
             conn.connect();
 
-            //Check if connect is made
             int responseCode = conn.getResponseCode();
 
-            // 200 OK
             if (responseCode != 200) {
                 throw new RuntimeException("HttpResponseCode: " + responseCode);
             } else {
-
-                StringBuilder informationString = new StringBuilder();
+                informationString = new StringBuilder();
                 scanner = new Scanner(url.openStream());
-
                 while (scanner.hasNext()) {
                     informationString.append(scanner.nextLine());
                 }
                 scanner.close();
-
                 JSONParser jsonParser = new JSONParser();
                 JSONObject jsonObject = (JSONObject) jsonParser.parse(String.valueOf(informationString));
                 writeJsonObjectToFile(JSON_FILE_NAME, jsonObject);
-
-                String weatherJson = String.valueOf(informationString);
-
-                Weather weather = new Gson().fromJson(weatherJson, Weather.class);
-                System.out.println(weather.daily.get(0).dt);
-                System.out.println(weather.daily.get(1).dt);
-                System.out.println(weather.daily.get(0).temp.min);
-                System.out.println(weather.daily.get(0).pop);
-
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return String.valueOf(informationString);
     }
 
     private static void writeJsonObjectToFile(String fileName, JSONObject jsonObject) {
