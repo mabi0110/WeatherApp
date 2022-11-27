@@ -1,0 +1,13 @@
+io\ConsolePrinter.class
+exception\LackOfCityException.class
+io\DataReader.class
+model\DailyWeather$Daily.class
+model\DailyWeather.class
+io\DataWriter.class
+model\HourlyWeather.class
+app\WeatherApp.class
+model\DailyWeather$Daily$Temp.class
+model\HourlyWeather$Hourly$Rain.class
+io\Client.class
+model\HourlyWeather$Hourly.class
+app\WeatherControl.class

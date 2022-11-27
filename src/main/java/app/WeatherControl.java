@@ -1,6 +1,7 @@
 package app;
 
 import com.google.gson.Gson;
+import exception.LackOfCityException;
 import io.Client;
 import io.ConsolePrinter;
 import io.DataReader;
@@ -11,6 +12,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import java.rmi.ServerError;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -47,7 +49,11 @@ public class WeatherControl {
                 lat = entry.getValue().get(0);
                 lon = entry.getValue().get(1);
             }
+            if(!map.containsKey(city)){
+                throw new LackOfCityException("Nie znaleziono miasta o podanej nazwie w bazie");
+            }
         }
+
 
         String stringUrl = buildUrl(key, exclude, lat, lon);
 
@@ -57,25 +63,32 @@ public class WeatherControl {
         JSONObject jsonObject;
         try {
             jsonObject = (JSONObject) jsonParser.parse(weatherJson);
-        } catch (ParseException e) {
+        } catch (
+                ParseException e) {
             throw new RuntimeException(e);
         }
         dataWriter.writeJsonObjectToFile(JSON_FILE_NAME, jsonObject);
 
-        if (Objects.equals(exclude, "daily")){
+        if (Objects.equals(exclude, "daily")) {
             DailyWeather dailyWeather = new Gson().fromJson(weatherJson, DailyWeather.class);
             consolePrinter.printDailyWeather(dailyWeather);
-        } else if (Objects.equals(exclude, "hourly")){
+        } else if (Objects.equals(exclude, "hourly")) {
             HourlyWeather hourlyWeather = new Gson().fromJson(weatherJson, HourlyWeather.class);
             consolePrinter.printHourlyWeather(hourlyWeather);
         }
+
     }
 
     private String buildUrl(String key, String exclude, String lat, String lon) {
-        String s = Objects.equals(exclude, "daily") ? "hourly" : "daily";
+        if ("daily".equals(exclude)){
+            exclude = "hourly";
+        } else if ("hourly".equals(exclude)){
+            exclude = "daily";
+        }
+
         return "https://api.openweathermap.org/data/2.5/onecall?lat=" + lat
                 + "&lon=" + lon
-                + "&exclude=" + s
+                + "&exclude=" + exclude
                 + ",current,minutely,alerts&appid=" + key;
     }
 
