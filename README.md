@@ -2,7 +2,6 @@
 
 ## Description
 
-A programing task for Tink Winter Internship.  
 
 WeatherApp is a simple weather forecast command line app that pulls weather data from OpenWeather [One Call API](https://openweathermap.org/api/one-call-api) based
 on user input and prints it to standard output in a readable form.
